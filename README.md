@@ -19,7 +19,7 @@
 ## 使用
 
 ```bash
-git clone https://github.com/listen-rain/https-automake
+git clone https://github.com/listen-rain/https-automake.git
 
 cd https
 
