@@ -33,10 +33,10 @@ openssl req -new -sha256 -key domain.key -subj "/CN=$domainName" > domain.csr
 # 多域名
 # openssl req -new -sha256 -key domain.key -subj "/" -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:yoursite.com,DNS:www.yoursite.com,DNS:subdomain.yoursite.com")) > domain.csr
 
-read -p 'Please Input The challenge Dir, default is [/data/challenges]: ' -a challengeDir
+read -p 'Please Input The challenge Dir, default is [/data/challenges/]: ' -a challengeDir
 
 if [ -z "$challengeDir" ]; then
-    challengeDir="/data/challenges"
+    challengeDir="/data/challenges/"
 fi
 
 if [ ! -d "$challengeDir" ]; then
