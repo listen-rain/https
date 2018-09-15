@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 # The specified directory
 read -p 'please input the work dir, default is [/data/ssl/]: ' -a workDir
 
