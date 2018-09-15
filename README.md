@@ -1,6 +1,6 @@
 # 自动生成 Let's Encrypt 安全证书
 
-### [ducomentation](https://github.com/diafygi/acme-tiny)
+### [ducomentation](https://github.com/listen-rain/acme-tiny)
 
 ### [friend-link](https://www.fanhaobai.com/2016/12/lets-encrypt.html)
 
