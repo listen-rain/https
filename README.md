@@ -1,4 +1,4 @@
-# https
+# 自动生成 Let's Encrypt 安全证书
 
 ### [ducomentation](https://github.com/diafygi/acme-tiny)
 
