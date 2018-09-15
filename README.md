@@ -30,7 +30,7 @@ sh autoMakeKey.sh
 
 crontab -e
 ```bash
-0 0 1 * * "$workDir"/renew_cert.sh &>> $workDir/acme_tiny.log
+0 0 0 1 * "$workDir"/renew_cert.sh &>> $workDir/acme_tiny.log
 ```
 
 有问题请发邮件至 zhufengwei@aliyun.com
