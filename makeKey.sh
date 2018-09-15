@@ -148,6 +148,8 @@ server {
   }
 }" | tee "$nginxConfDir"/"$tmpConfFile"
 
+rm -f "$nginxConfDir"/"$challengeConfFile"
+
 ###################### end ####################################################
 
 # nginx -s reload
