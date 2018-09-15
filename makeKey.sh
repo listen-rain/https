@@ -55,7 +55,7 @@ echo "server {
   location ^~ /.well-known/acme-challenge/ {
     #存放验证文件的目录，需自行更改为对应目录
     alias $challengeDir;
-    try_files $uri =404;
+    try_files $uri=404;
   }
   location / {
     rewrite ^/(.*)$ https://$domainName/$1 permanent;
@@ -88,7 +88,7 @@ echo "server {
   ssl_dhparam $workDir/dhparams.pem;            #根据你的路径更改
   ssl_prefer_server_ciphers on;
 
-  ...the rest of your config
+  # ...the rest of your config
 }" | tee "$nginxConfDir"/$domainName-tmp.conf
 
 ###################### end ####################################################
