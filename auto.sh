@@ -4,13 +4,13 @@ touch ./renew_cert.sh
 
 chmod a+x ./renew_cert.sh
 
-python "$workDir"/acme_tiny.py --account-key "$workDir"/account.key \
-    --csr "$workDir"/domain.csr \
-    --acme-dir "$challengeDir" > "$workDir"/signed.crt || exit
+python ./acme_tiny.py --account-key ./account.key \
+    --csr ./domain.csr \
+    --acme-dir "$challengeDir" > ./signed.crt || exit
 
-wget -O - https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem > "$workDir"/intermediate.pem
+wget -O - https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem > ./intermediate.pem
 
-cat "$workDir"/signed.crt "$workDir"/intermediate.pem > "$workDir"/chained.pem
+cat ./signed.crt ./intermediate.pem > ./chained.pem
 
 nginx -s reload
 

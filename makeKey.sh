@@ -15,9 +15,9 @@ cd "$workDir"
 
 ########################### start ###########################
 
-openssl genrsa 4096 > account.key
+openssl genrsa 4096 > ./account.key
 
-openssl genrsa 4096 > domain.key
+openssl genrsa 4096 > ./domain.key
 
 # The Domain Name
 read -p 'please input the domain name: ' -a domainName
@@ -50,21 +50,23 @@ if [ ! -d "$nginxConfDir" ]; then
     exit 1
 fi
 
-echo 'server {
-  server_name www.yoursite.com yoursite.com subdomian.yoursite.com;
+echo "server {
+  server_name $domainName;
   location ^~ /.well-known/acme-challenge/ {
     #存放验证文件的目录，需自行更改为对应目录
-    alias /data/challenges/;
+    alias $challengeDir;
     try_files $uri =404;
   }
   location / {
-    rewrite ^/(.*)$ https://yoursite.com/$1 permanent;
+    rewrite ^/(.*)$ https://$domainName/$1 permanent;
   }
-}' | tee $nginxConfDir/$domainName.ssl.challenge.conf
+}" | tee "$nginxConfDir"/"$domainName".challenge.conf
 
 wget https://raw.githubusercontent.com/diafygi/acme-tiny/master/acme_tiny.py
 
-python acme_tiny.py --account-key ./account.key --csr ./domain.csr --acme-dir /data/challenges/ > ./signed.crt
+python acme_tiny.py --account-key ./account.key \
+    --csr ./domain.csr \
+    --acme-dir $challengeDir > ./signed.crt
 
 openssl dhparam -out ./dhparams.pem 2048
 
@@ -74,7 +76,7 @@ cat signed.crt intermediate.pem > ./chained.pem
 
 echo "server {
   listen 443;
-  server_name $domainName.com, www.$domainName.com;
+  server_name $domainName;
 
   ssl on;                                        # nginx >= 1.5 版本无需写此行
   ssl_certificate $workDir/chained.pem;          # 根据你的路径更改
@@ -87,7 +89,7 @@ echo "server {
   ssl_prefer_server_ciphers on;
 
   ...the rest of your config
-}" | tee $nginxConfDir/ssl-tmp.conf
+}" | tee "$nginxConfDir"/$domainName-tmp.conf
 
 ###################### end ####################################################
 
