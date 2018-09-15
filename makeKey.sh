@@ -93,6 +93,6 @@ echo "server {
 
 ###################### end ####################################################
 
-nginx -s reload
+# nginx -s reload
 
-source ./auto.sh
+cd - && sh ./auto.sh $workDir
