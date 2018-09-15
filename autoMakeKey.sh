@@ -196,4 +196,4 @@ rm -f "$nginxConfDir"/"$challengeConfFile"
 
 echo "Don't forget, exec: nginx -s reload"
 
-cd - && sh ./auto.sh $workDir
+cd - && sh ./autoUpdate.sh $workDir

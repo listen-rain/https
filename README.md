@@ -1,8 +1,8 @@
 # https
 
-### [ducoment](https://github.com/diafygi/acme-tiny)
+### [ducomentation](https://github.com/diafygi/acme-tiny)
 
-### [friend](https://www.fanhaobai.com/2016/12/lets-encrypt.html)
+### [friend-link](https://www.fanhaobai.com/2016/12/lets-encrypt.html)
 
 ## 准备工作 
 
@@ -12,4 +12,23 @@
 
 - 为防止不必要的麻烦，所有自己指定的目录必须带上后面的 '/'
 
+- 错误日志在 acme_tiny.log
 
+## 使用
+
+```bash
+git clone https://github.com/listen-rain/https.git
+
+cd https
+
+sh autoMakeKey.sh
+```
+
+## 添加自动更新证书的定时任务
+
+crontab -e
+```bash
+0 0 1 * * "$workDir"/renew_cert.sh &>> $workDir/acme_tiny.log
+```
+
+有问题请发邮件至 zhufengwei@aliyun.com
