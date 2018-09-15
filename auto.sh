@@ -16,5 +16,5 @@ nginx -s reload
 
 chmod a+x ./renew_cert.sh
 
-echho "exec: crontab -e '0 0 1 * * $workDir/renew_cert.sh 2>> $workDir/acme_tiny.log' "
+echo "exec: crontab -e '0 0 1 * * $workDir/renew_cert.sh 2>> $workDir/acme_tiny.log' "
 
