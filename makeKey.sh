@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # The specified directory
-read -p 'please input the work dir, default is [/data/ssl]: ' -a workDir
+read -p 'please input the work dir, default is [/data/ssl/]: ' -a workDir
 
 if [ -z ""$workDir"" ]; then
     workDir="/data/ssl"
@@ -50,7 +50,7 @@ fi
 
 
 # 指定 nginx 配置目录
-read -p 'Please Input The Nginx Conf Dir, default is [/etc/nginx/conf.d]: ' -a nginxConfDir
+read -p 'Please Input The Nginx Conf Dir, default is [/etc/nginx/conf.d/]: ' -a nginxConfDir
 
 if [ -z "$nginxConfDir" ]; then
     nginxConfDir="/etc/nginx/conf.d"
