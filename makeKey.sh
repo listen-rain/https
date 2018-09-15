@@ -27,7 +27,11 @@ if [ -z "$domainName" ]; then
     exit 1
 fi
 
+# 单域名
 openssl req -new -sha256 -key domain.key -subj "/CN=$domainName" > domain.csr
+
+# 多域名
+# openssl req -new -sha256 -key domain.key -subj "/" -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:yoursite.com,DNS:www.yoursite.com,DNS:subdomain.yoursite.com")) > domain.csr
 
 read -p 'Please Input The challenge Dir, default is [/data/challenges]: ' -a challengeDir
 
@@ -57,20 +61,17 @@ if [ -z "$challengeConfFile" ]; then
 fi
 
 if [ -f "$nginxConfDir"/"$challengeConfFile" ]; then
-    read -p 'the File already exists, please input the tmp conf file name again, default is [$domainName.challenge2.conf]: ' -a challengeConfFile
-
-    if [ -z "$challengeConfFile" ]; then
-        challengeConfFile=$domainName.challenge2.conf
-    fi
+    read -p 'the challenge conf file already exists, please input the challenge conf file name again.' -a challengeConfFile
 fi
 
 echo "server {
+  listen 80;
   server_name $domainName;
 
-  location ^~ /.well-known/acme-challenge/ {
+  location /.well-known/acme-challenge/ {
     #存放验证文件的目录，需自行更改为对应目录
     alias $challengeDir;
-    try_files $uri =404;
+    try_files \$uri =404;
   }
 
   location / {
@@ -78,11 +79,22 @@ echo "server {
   }
 }" | tee "$nginxConfDir"/"$challengeConfFile"
 
+nginx -s reload
+
+if [ $? != 0 ]; then
+    exit $?
+fi
+
 wget https://raw.githubusercontent.com/diafygi/acme-tiny/master/acme_tiny.py
 
-python acme_tiny.py --account-key ./account.key \
-    --csr ./domain.csr \
-    --acme-dir $challengeDir > ./signed.crt
+python acme_tiny.py --account-key ./account.key --csr ./domain.csr --acme-dir "$challengeDir" > ./signed.crt > ./acme_tiny.log
+
+if [ $? != 0 ]; then
+    cat ./acme_tiny.log
+    exit $?
+fi
+
+nginx -s reload
 
 openssl dhparam -out ./dhparams.pem 2048
 
@@ -104,7 +116,8 @@ if [ -f "$nginxConfDir"/"$tmpConfFile" ]; then
     fi
 fi
 
-echo "server {
+echo "
+server {
   listen 443 ssl;
   server_name $domainName;
 
@@ -119,6 +132,20 @@ echo "server {
   ssl_prefer_server_ciphers on;
 
   # ...the rest of your config
+}
+
+server {
+  listen 80;
+  server_name $domainName;
+
+  location /.well-known/acme-challenge/ {
+    alias $challengeDir;
+    try_files \$uri =404;
+  }
+
+  location / {
+    rewrite ^/(.*)$ https://$domainName/$1 permanent;
+  }
 }" | tee "$nginxConfDir"/"$tmpConfFile"
 
 ###################### end ####################################################
