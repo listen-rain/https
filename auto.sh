@@ -196,4 +196,24 @@ rm -f "$nginxConfDir"/"$challengeConfFile"
 
 echo "Don't forget, exec: nginx -s reload"
 
-cd - && sh ./autoUpdate.sh $workDir
+
+################################ auto update ########################################
+echo "
+python $workDir/acme_tiny.py --account-key $workDir/account.key \
+    --csr $workDir/domain.csr \
+    --acme-dir "$challengeDir" > $workDir/signed.crt > $workDir/acme_tiny.log
+
+if [ $? != 0 ]; then
+    exit $?
+fi
+
+wget -O - https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem > $workDir/intermediate.pem
+
+cat $workDir/signed.crt $workDir/intermediate.pem > $workDir/chained.pem
+
+nginx -s reload
+" | tee ./renew_cert.sh
+
+chmod a+x ./renew_cert.sh
+
+echo "Don't forget, exec: crontab -e '0 0 1 * * $workDir/renew_cert.sh 2>> $workDir/acme_tiny.log' "

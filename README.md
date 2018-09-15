@@ -23,7 +23,7 @@ git clone https://github.com/listen-rain/https-automake.git
 
 cd https
 
-sh autoMakeKey.sh
+sh auto.sh
 ```
 
 ## 添加自动更新证书的定时任务
