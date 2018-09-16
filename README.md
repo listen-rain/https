@@ -33,4 +33,10 @@ crontab -e
 0 0 0 1 * "$workDir"/renew_cert.sh &>> $workDir/acme_tiny.log
 ```
 
+## 其他好用的免费证书
+
+- [sslforfree 证书申请](https://www.sslforfree.com/)
+
+- [aliyun 证书申请](https://yq.aliyun.com/articles/221596?spm=5176.10695662.1996646101.searchclickresult.1f0c7d54fyc974)
+
 有问题请发邮件至 zhufengwei@aliyun.com
