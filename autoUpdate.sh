@@ -21,6 +21,6 @@ nginx -s reload
 
 chmod a+x ./renew_cert.sh
 
-echo "Don't forget, exec: crontab -e '0 0 1 * * $1/renew_cert.sh 2>> $1/acme_tiny.log' "
+echo "Don't forget. exec: crontab -e '0 0 1 * * /usr/bin/sh $1/renew_cert.sh 2>> $1/acme_tiny.log' "
 
 }

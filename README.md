@@ -34,7 +34,7 @@ sh auto.sh
 
 crontab -e
 ```bash
-0 0 0 1 * $workDir/renew_cert.sh &>> $workDir/acme_tiny.log
+0 0 0 1 * /usr/bin/sh $workDir/renew_cert.sh &>> $workDir/acme_tiny.log
 ```
 
 ## 其他好用的免费证书
