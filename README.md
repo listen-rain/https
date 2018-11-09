@@ -18,19 +18,23 @@
 
 ## 使用
 
+1、安装证书
 ```bash
 git clone https://github.com/listen-rain/https-automake.git
 
-cd https
+cd https-automake
 
 sh auto.sh
 ```
 
-## 添加自动更新证书的定时任务
+2、配置 Nginx 并 重启
+
+
+3、添加自动更新证书的定时任务
 
 crontab -e
 ```bash
-0 0 0 1 * "$workDir"/renew_cert.sh &>> $workDir/acme_tiny.log
+0 0 0 1 * $workDir/renew_cert.sh &>> $workDir/acme_tiny.log
 ```
 
 ## 其他好用的免费证书
