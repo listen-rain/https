@@ -2,33 +2,27 @@
 
 set -e
 
+. ./func.sh
+. ./autoUpdate.sh
+
 # The specified directory
 read -p 'please input the work dir, default is [/data/ssl/]: ' -a workDir
 
-if [ -z ""$workDir"" ]; then
-    workDir="/data/ssl"
-fi
-
-if [ ! -d "$workDir" ]; then
-    mkdir -p "$workDir" && sudo chmod -R 777 "$workDir"
-fi
+workDir=$(checkDir $workDir '/data/ssl/')
 
 cd "$workDir"
 
 
 ########################### start ###########################
 
+# make account
 openssl genrsa 4096 > ./account.key
 
 openssl genrsa 4096 > ./domain.key
 
-# The Domain Name
-read -p 'please input the domain name: ' -a domainName
 
-if [ -z "$domainName" ]; then
-    echo "The Domain Name Can't Be Null!"
-    exit 1
-fi
+# The Domain Name
+domainName=$(specifyDomain)
 
 
 # 单域名
@@ -42,14 +36,7 @@ openssl req -new -sha256 -key domain.key -subj "/CN=$domainName" > domain.csr
 # 创建 challenge 目录
 read -p 'Please Input The challenge Dir, default is [/data/challenges/]: ' -a challengeDir
 
-if [ -z "$challengeDir" ]; then
-    challengeDir="/data/challenges/"
-fi
-
-if [ ! -d "$challengeDir" ]; then
-    mkdir -p "$challengeDir" && sudo chmod -R 777 "$challengeDir"
-fi
-
+challengeDir=$(checkDir $challengeDir '/data/challenges/')
 
 # 指定 nginx 配置目录
 read -p 'Please Input The Nginx Conf Dir, default is [/etc/nginx/conf.d/]: ' -a nginxConfDir
@@ -72,11 +59,18 @@ if [ -z "$challengeConfFile" ]; then
 fi
 
 if [ -f "$nginxConfDir"/"$challengeConfFile" ]; then
-    read -p 'the challenge conf file already exists, please input the challenge conf file name again.' -a challengeConfFile
+    read -p 'the challenge conf file already exists, please input the challenge conf file name again: ' -a challengeConfFile
+
+    if [ -z $challengeConfFile ]
+    then
+        challengeConfFile=$domainName.challenge2.conf
+    fi
 fi
 
 
 # 创建 challenge 配置文件, 并写入内容
+echo "Makeing challengeConfFile ....."
+
 echo "server {
   listen 80;
   server_name $domainName;
@@ -94,22 +88,15 @@ echo "server {
 
 
 # 重启 nginx
+echo "Reload Nginx ....."
 nginx -s reload
-
-if [ $? != 0 ]; then
-    exit $?
-fi
 
 
 # 生成证书
+echo 'Creating Credential ......'
 wget https://raw.githubusercontent.com/diafygi/acme-tiny/master/acme_tiny.py
 
-python acme_tiny.py --account-key ./account.key --csr ./domain.csr --acme-dir "$challengeDir" > ./signed.crt > ./acme_tiny.log
-
-if [ $? != 0 ]; then
-    cat ./acme_tiny.log
-    exit $?
-fi
+python acme_tiny.py --account-key ./account.key --csr ./domain.csr --acme-dir "$challengeDir" > ./signed.crt
 
 openssl dhparam -out ./dhparams.pem 2048
 
@@ -135,87 +122,72 @@ fi
 
 
 # nginx 配置文件的根目录
-read -p "please input the root directory: " -a rootDir
+read -p "please input the root directory, default is [/www]: " -a rootDir
 
 if [ ! -d "$rootDir" ]; then
     echo "No such directory"
     echo "Use Default /www"
-    rootDIr="/www"
+    rootDir="/www"
 fi
 
 echo "
 # php nginx conf example
 
 server {
-  listen 443 ssl;
-  server_name $domainName;
-  index index.html index.php;
-  root  $rootDir;
+    listen 443 ssl;
+    server_name $domainName;
+    index index.html index.php;
+    root  $rootDir;
 
-  ssl on;                                        # nginx >= 1.5 版本无需写此行
-  ssl_certificate $workDir/chained.pem;          # 根据你的路径更改
-  ssl_certificate_key $workDir/domain.key;       # 根据你的路径更改
-  ssl_session_timeout 5m;
-  ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
-  ssl_ciphers ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA;
-  ssl_session_cache shared:SSL:50m;
-  ssl_dhparam $workDir/dhparams.pem;            #根据你的路径更改
-  ssl_prefer_server_ciphers on;
+    ssl on;                                        # nginx >= 1.5 版本无需写此行
+    ssl_certificate $workDir/chained.pem;          # 根据你的路径更改
+    ssl_certificate_key $workDir/domain.key;       # 根据你的路径更改
+    ssl_session_timeout 5m;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA;
+    ssl_session_cache shared:SSL:50m;
+    ssl_dhparam $workDir/dhparams.pem;            #根据你的路径更改
+    ssl_prefer_server_ciphers on;
 
-  location / {
-		try_files \$uri @rewriteapp;
-	}
+    location / {
+        try_files \$uri @rewriteapp;
+    }
 
-	location @rewriteapp {
-		rewrite ^(.*)$ /index.php\$1 last;
-	}
+    location @rewriteapp {
+        rewrite ^(.*)$ /index.php\$1 last;
+    }
 
-	location ~ ^/.*\.php(/|$) {
-		fastcgi_pass unix:/tmp/php-cgi.sock;
-		fastcgi_split_path_info ^(.+\.php)(/.*)\$;
-		fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-		include fastcgi_params;
-	}
+    location ~ ^/.*\.php(/|$) {
+        fastcgi_pass unix:/tmp/php-cgi.sock;
+        fastcgi_split_path_info ^(.+\.php)(/.*)\$;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        include fastcgi_params;
+    }
 }
 
 server {
-  listen 80;
-  server_name $domainName;
+    listen 80;
+    server_name $domainName;
 
-  location /.well-known/acme-challenge/ {
-    alias $challengeDir;
-    try_files \$uri =404;
-  }
+    location /.well-known/acme-challenge/ {
+        alias $challengeDir;
+        try_files \$uri =404;
+    }
 
-  location / {
-    rewrite ^/(.*)$ https://$domainName/$1 permanent;
-  }
+    location / {
+        rewrite ^/(.*)$ https://$domainName/$1 permanent;
+    }
 }" | tee "$nginxConfDir"/"$tmpConfFile"
 
+echo 'Deleting challengeConfFile .....'
 rm -f "$nginxConfDir"/"$challengeConfFile"
 
 ###################### end ####################################################
+
 
 echo "Don't forget, exec: nginx -s reload"
 
 
 ################################ auto update ########################################
-echo "
-python $workDir/acme_tiny.py --account-key $workDir/account.key \
-    --csr $workDir/domain.csr \
-    --acme-dir "$challengeDir" > $workDir/signed.crt > $workDir/acme_tiny.log
 
-if [ $? != 0 ]; then
-    exit $?
-fi
-
-wget -O - https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem > $workDir/intermediate.pem
-
-cat $workDir/signed.crt $workDir/intermediate.pem > $workDir/chained.pem
-
-nginx -s reload
-" | tee ./renew_cert.sh
-
-chmod a+x ./renew_cert.sh
-
-echo "Don't forget, exec: crontab -e '0 0 1 * * $workDir/renew_cert.sh 2>> $workDir/acme_tiny.log' "
+autoUpdate $workDir $challengeDir
