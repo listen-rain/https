@@ -6,9 +6,9 @@ set -e
 . ./autoUpdate.sh
 
 # The specified directory
-read -p 'please input the work dir, default is [/data/ssl/]: ' -a workDir
+read -p 'please input the work dir, default is [/data/ssl]: ' -a workDir
 
-workDir=$(checkDir $workDir '/data/ssl/')
+workDir=$(checkDir $workDir '/data/ssl')
 
 cd "$workDir"
 
@@ -34,12 +34,12 @@ openssl req -new -sha256 -key domain.key -subj "/CN=$domainName" > domain.csr
 
 
 # 创建 challenge 目录
-read -p 'Please Input The challenge Dir, default is [/data/challenges/]: ' -a challengeDir
+read -p 'Please Input The challenge Dir, default is [/data/challenges]: ' -a challengeDir
 
-challengeDir=$(checkDir $challengeDir '/data/challenges/')
+challengeDir=$(checkDir $challengeDir '/data/challenges')
 
 # 指定 nginx 配置目录
-read -p 'Please Input The Nginx Conf Dir, default is [/etc/nginx/conf.d/]: ' -a nginxConfDir
+read -p 'Please Input The Nginx Conf Dir, default is [/etc/nginx/conf.d]: ' -a nginxConfDir
 
 if [ -z "$nginxConfDir" ]; then
     nginxConfDir="/etc/nginx/conf.d"
