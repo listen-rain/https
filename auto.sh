@@ -13,7 +13,7 @@ workDir=$(checkDir $workDir '/data/ssl')
 cd "$workDir"
 
 
-########################### start ###########################
+#----------------- start -----------------------
 
 # make account
 openssl genrsa 4096 > ./account.key
@@ -182,12 +182,12 @@ server {
 echo 'Deleting challengeConfFile .....'
 rm -f "$nginxConfDir"/"$challengeConfFile"
 
-###################### end ####################################################
+#-------------------- end ---------------------
 
 
 echo "Don't forget, exec: nginx -s reload"
 
 
-################################ auto update ########################################
+#-------------------- auto update -----------------------
 
 autoUpdate $workDir $challengeDir
