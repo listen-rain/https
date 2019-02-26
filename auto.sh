@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+# set -e
 
 . ./func.sh
 . ./autoUpdate.sh
@@ -23,6 +23,12 @@ openssl genrsa 4096 > ./domain.key
 
 # The Domain Name
 domainName=$(specifyDomain)
+
+if [ -z "$domainName" ]; then
+	echo -e "\n\033[31m \bThe Domain Name Can't Be Null!\033[0m"
+	exit 1
+fi
+
 
 
 # 单域名

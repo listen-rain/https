@@ -25,10 +25,5 @@ specifyDomain ()
 
     domainName=$(echo $domainName | sed -n 's/^[ ]*\(.*\)[ ]*$/\1/p')
 
-    if [ -z "$domainName" ]; then
-        echo "The Domain Name Can't Be Null!"
-        exit 1
-    fi
-
-    echo $domainName
+	echo $domainName
 }
