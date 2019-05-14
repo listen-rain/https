@@ -9,8 +9,8 @@ if [ `id -u` -ne 0 ]; then
 fi
 
 
-. func.sh
-. autoUpdate.sh
+. ./func.sh
+. ./autoUpdate.sh
 
 
 # The specified directory
