@@ -34,7 +34,7 @@ sslAccount="./account.key"
 if [ ! -f "$sslAccount" ];then
 	openssl genrsa $level > $sslAccount
 else
-    echo -e "$sslAccount already exists, continue.\n"
+    echo -e "$sslAccount already exists, continue."
 fi
 
 
@@ -43,14 +43,14 @@ sslDomain="./domain.key"
 if [ ! -f "$sslDomain" ];then
 	openssl genrsa $level > $sslDomain
 else
-    echo -e "$sslDomain already exists, continue.\n"
+    echo -e "$sslDomain already exists, continue."
 fi
 
 
 # The Domain Name
 domainName=$(specifyDomain)
 if [ -z "$domainName" ]; then
-	echo -e "\n\033[31m \bThe Domain Name Can't Be Null!\033[0m\n"
+	echo -e "\n\033[31m \bThe Domain Name Can't Be Null!\033[0m"
 	exit 1
 fi
 
@@ -63,7 +63,7 @@ if [ ! -f $sslCsr ]; then
         echo -e "\033[31m \bVerifying Error! Please Check Again!\033[0m"
     fi
 else
-    echo "$sslCsr file already exists, continue.\n"
+    echo "$sslCsr file already exists, continue."
 fi
 
 
@@ -97,13 +97,13 @@ if [ -f "$nginxConfDir/$challengeConfFile" ]; then
     read -p "the challenge conf file already exists, del it? [yes|no]: " -a isDelFile
 
     if [ $isDelFile == "no" ]; then
-        echo -e "Please confirm this $nginxConfDir/$challengeConfFile domain is $domainName\n"
-        echo -e "continue...\n"
+        echo -e "Please confirm this $nginxConfDir/$challengeConfFile domain is $domainName"
+        echo -e "continue..."
     else
         rm "$nginxConfDir/$challengeConfFile"
 
         # 创建 challenge 配置文件, 并写入内容
-        echo "Making challengeConfFile .....\n"
+        echo "Making challengeConfFile ....."
         echo "server {
           listen 80;
           server_name $domainName;
@@ -129,7 +129,7 @@ if [ -f "$nginxConfDir/$challengeConfFile" ]; then
         echo "Reload Nginx ....."
         nginx -s reload || systemcl restart nginx || service nginx restart
         if [ $? -ne 0 ];then
-            echo  -e "Nginx restart failed.\n"
+            echo  -e "Nginx restart failed."
             exit 1
         fi
     fi
@@ -174,7 +174,7 @@ if [ ! -d "$rootDir" ]; then
     rootDir="/www"
 fi
 
-echo -e "creating config file $nginxConfDir/$tmpConfFile ...\n"
+echo -e "creating config file $nginxConfDir/$tmpConfFile ..."
 echo "
 # php nginx conf example
 
