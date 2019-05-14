@@ -20,13 +20,19 @@ read -p "please input the work dir, default is [$defaultWorkDir]: " -a workDir
 workDir=$(checkDir $workDir $defaultWorkDir)
 cd "$workDir"
 
-
 #----------------- start -----------------------
+
+# level
+read -p "Please input the level, like [1024, 2048, 4096], default is 1024: " -a level
+if [ $level == "" ]; then
+    level=1024
+fi
+
 
 # make account
 sslAccount="./account.key"
 if [ ! -f "$sslAccount" ];then
-	openssl genrsa 4096 > $sslAccount
+	openssl genrsa $level > $sslAccount
 else
     echo -e "$sslAccount already exists, continue.\n"
 fi
@@ -35,7 +41,7 @@ fi
 # domain key
 sslDomain="./domain.key"
 if [ ! -f "$sslDomain" ];then
-	openssl genrsa 4096 > $sslDomain
+	openssl genrsa $level > $sslDomain
 else
     echo -e "$sslDomain already exists, continue.\n"
 fi
@@ -136,7 +142,7 @@ if [ ! -f acme_tiny.py ]; then
     wget https://raw.githubusercontent.com/diafygi/acme-tiny/master/acme_tiny.py
 fi
 python acme_tiny.py --account-key ./account.key --csr ./domain.csr --acme-dir "$challengeDir" > ./signed.crt
-openssl dhparam -out ./dhparams.pem 2048
+openssl dhparam -out ./dhparams.pem $level
 wget -O - https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem > ./intermediate.pem
 cat signed.crt intermediate.pem > ./chained.pem
 
