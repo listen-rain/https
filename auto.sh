@@ -2,7 +2,6 @@
 
 # set -e
 
-
 # root
 if [ `id -u` -ne 0 ]; then
     echo -e "Please switch to root!\n"
@@ -10,15 +9,14 @@ if [ `id -u` -ne 0 ]; then
 fi
 
 
-. ./func.sh
-. ./autoUpdate.sh
+. func.sh
+. autoUpdate.sh
 
 
 # The specified directory
-defaultWorkDir="/data/ssl"
-read -p "please input the work dir, default is [$defaultWorkDir]: " -a workDir
-workDir=$(checkDir $workDir $defaultWorkDir)
-cd "$workDir"
+defaultBaseDir="/data/ssl"
+read -p "please input the work dir, default is [$defaultBaseDir]: " -a baseDir
+baseDir=$(checkDir $baseDir defaultBaseDir)
 
 #----------------- start -----------------------
 
@@ -29,7 +27,7 @@ if [ -z $level ]; then
 fi
 
 # make account
-sslAccount="./account.key"
+sslAccount="$baseDir/account.key"
 if [ ! -f "$sslAccount" ];then
 	openssl genrsa $level > $sslAccount
 else
@@ -38,7 +36,7 @@ fi
 
 
 # domain key
-sslDomain="./domain.key"
+sslDomain="$baseDir/domain.key"
 if [ ! -f "$sslDomain" ];then
 	openssl genrsa $level > $sslDomain
 else
@@ -55,7 +53,7 @@ fi
 
 
 # csr
-sslCsr="./domain.csr"
+sslCsr="$baseDir/domain.csr"
 if [ ! -f $sslCsr ]; then
     openssl req -new -sha256 -key $sslDomain -subj "/CN=$domainName" > $sslCsr
     if [ $? -ne 0 ];then
@@ -137,13 +135,13 @@ fi
 
 # 生成证书
 echo 'Creating Credential ......'
-if [ ! -f acme_tiny.py ]; then
-    wget https://raw.githubusercontent.com/diafygi/acme-tiny/master/acme_tiny.py
+if [ ! -f $baseDir/acme_tiny.py ]; then
+    wget https://raw.githubusercontent.com/diafygi/acme-tiny/master/acme_tiny.py -O $baseDir/acme_tiny.py
 fi
-python acme_tiny.py --account-key ./account.key --csr ./domain.csr --acme-dir "$challengeDir" > ./signed.crt
-openssl dhparam -out ./dhparams.pem $level
-wget -O - https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem > ./intermediate.pem
-cat signed.crt intermediate.pem > ./chained.pem
+python $baseDir/acme_tiny.py --account-key $sslAccount --csr $sslCsr --acme-dir "$challengeDir" > $baseDir/signed.crt
+openssl dhparam -out $baseDir/dhparams.pem $level
+wget -O - https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem > $baseDir/intermediate.pem
+cat $baseDir/signed.crt $baseDir/intermediate.pem > $baseDir/chained.pem
 
 
 # 创建 nginx server 配置文件并写入内容
@@ -156,7 +154,7 @@ fi
 if [ -f "$nginxConfDir/$tmpConfFile" ]; then
     read -p "The File $nginxConfDir/$tmpConfFile already exists, overwrite it? [yes|no]: " -a overwrite
     if [ "$overwrite" == "no" ]; then
-        autoUpdate $workDir $challengeDir
+        autoUpdate $baseDir $challengeDir
 
         exit 0
     else
@@ -184,13 +182,13 @@ server {
     root  $rootDir;
 
     ssl on;                                        # nginx >= 1.5 版本无需写此行
-    ssl_certificate $workDir/chained.pem;          # 根据你的路径更改
-    ssl_certificate_key $workDir/domain.key;       # 根据你的路径更改
+    ssl_certificate $baseDir/chained.pem;          # 根据你的路径更改
+    ssl_certificate_key $baseDir/domain.key;       # 根据你的路径更改
     ssl_session_timeout 5m;
     ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
     ssl_ciphers ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA;
     ssl_session_cache shared:SSL:50m;
-    ssl_dhparam $workDir/dhparams.pem;            #根据你的路径更改
+    ssl_dhparam $baseDir/dhparams.pem;            #根据你的路径更改
     ssl_prefer_server_ciphers on;
 
     location / {
@@ -232,4 +230,4 @@ echo -e "\n\033[33m \bDon't forget restart nginx !\033[0m"
 
 #-------------------- auto update -----------------------
 
-autoUpdate $workDir $challengeDir
+autoUpdate $baseDir $challengeDir
