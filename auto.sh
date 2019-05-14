@@ -2,59 +2,76 @@
 
 # set -e
 
+
+# root
+if [ `id -u` -ne 0 ]; then
+    echo -e "Please switch to root!\n"
+    exit 1
+fi
+
+
 . ./func.sh
 . ./autoUpdate.sh
 
+
 # The specified directory
-read -p 'please input the work dir, default is [/data/ssl]: ' -a workDir
-
-workDir=$(checkDir $workDir '/data/ssl')
-
+defaultWorkDir="/data/ssl"
+read -p "please input the work dir, default is [$defaultWorkDir]: " -a workDir
+workDir=$(checkDir $workDir $defaultWorkDir)
 cd "$workDir"
 
 
 #----------------- start -----------------------
 
 # make account
-if [ ! -f ./account.key ];then
-	openssl genrsa 4096 > ./account.key
+sslAccount="./account.key"
+if [ ! -f "$sslAccount" ];then
+	openssl genrsa 4096 > $sslAccount
+else
+    echo -e "$sslAccount already exists, continue.\n"
 fi
 
-if [ ! -f ./domain.key ];then
-	openssl genrsa 4096 > ./domain.key
+
+# domain key
+sslDomain="./domain.key"
+if [ ! -f "$sslDomain" ];then
+	openssl genrsa 4096 > $sslDomain
+else
+    echo -e "$sslDomain already exists, continue.\n"
 fi
+
 
 # The Domain Name
 domainName=$(specifyDomain)
-
 if [ -z "$domainName" ]; then
-	echo -e "\n\033[31m \bThe Domain Name Can't Be Null!\033[0m"
+	echo -e "\n\033[31m \bThe Domain Name Can't Be Null!\033[0m\n"
 	exit 1
 fi
 
 
-
-# 单域名
-openssl req -new -sha256 -key domain.key -subj "/CN=$domainName" > domain.csr
-
-if [ $? -ne 0 ];then
-	echo -e "\033[31m \bVerifying Error! Please Check Again!\033[0m"	
+# csr
+sslCsr="./domain.csr"
+if [ ! -f $sslCsr ]; then
+    openssl req -new -sha256 -key $sslDomain -subj "/CN=$domainName" > $sslCsr
+    if [ $? -ne 0 ];then
+        echo -e "\033[31m \bVerifying Error! Please Check Again!\033[0m"
+    fi
+else
+    echo "$sslCsr file already exists, continue.\n"
 fi
 
-# 多域名
-# openssl req -new -sha256 -key domain.key -subj "/" -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:yoursite.com,DNS:www.yoursite.com,DNS:subdomain.yoursite.com")) > domain.csr
 
+# challenge 目录
+defaultChallengeDir="/data/challenges"
+read -p "Please Input The challenge Dir, default is [$defaultChallengeDir]: " -a challengeDir
+challengeDir=$(checkDir $challengeDir $defaultChallengeDir)
 
-# 创建 challenge 目录
-read -p 'Please Input The challenge Dir, default is [/data/challenges]: ' -a challengeDir
-
-challengeDir=$(checkDir $challengeDir '/data/challenges')
 
 # 指定 nginx 配置目录
-read -p 'Please Input The Nginx Conf Dir, default is [/etc/nginx/conf.d]: ' -a nginxConfDir
-
+defaultNginxDir="/etc/nginx/conf.d"
+read -p "Please Input The Nginx Conf Dir, default is [$defaultNginxDir]: " -a nginxConfDir
 if [ -z "$nginxConfDir" ]; then
-    nginxConfDir="/etc/nginx/conf.d"
+    nginxConfDir=$defaultNginxDir
 fi
 
 if [ ! -d "$nginxConfDir" ]; then
@@ -64,98 +81,94 @@ fi
 
 
 # 指定 nginx server 配置文件
-read -p "please input the challenge conf file name, default is [$domainName.challenge.conf]: " -a challengeConfFile
-
+defaultChallengeConfFile="$domainName.challenge.conf"
+read -p "please input the challenge conf file name, default is [$defaultChallengeConfFile]: " -a challengeConfFile
 if [ -z "$challengeConfFile" ]; then
-    challengeConfFile=$domainName.challenge.conf
+    challengeConfFile=$defaultChallengeConfFile
 fi
 
-if [ -f "$nginxConfDir"/"$challengeConfFile" ]; then
-    read -p 'the challenge conf file already exists, please input the challenge conf file name again: ' -a challengeConfFile
+if [ -f "$nginxConfDir/$challengeConfFile" ]; then
+    read -p "the challenge conf file already exists, del it? [yes|no]: " -a isDelFile
 
-    if [ -z $challengeConfFile ]
-    then
-        challengeConfFile=$domainName.challenge2.conf
+    if [ $isDelFile == "no" ]; then
+        echo -e "Please confirm this $nginxConfDir/$challengeConfFile domain is $domainName\n"
+        echo -e "continue...\n"
+    else
+        rm "$nginxConfDir/$challengeConfFile"
+
+        # 创建 challenge 配置文件, 并写入内容
+        echo "Making challengeConfFile .....\n"
+        echo "server {
+          listen 80;
+          server_name $domainName;
+
+          location /.well-known/acme-challenge/ {
+            #存放验证文件的目录，需自行更改为对应目录
+            alias $challengeDir/;
+            try_files \$uri =404;
+          }
+
+          location / {
+            rewrite ^/(.*)$ https://$domainName/\$1 permanent;
+          }
+        }" | tee "$nginxConfDir/$challengeConfFile"
+
+        # 重启 nginx
+        read -p "Are you sure you want to restart nginx? [yes|no]: " -a nginxRestart
+        if [ "$nginxRestart" == "no" ];then
+            echo -e "please restart nginx you self now."
+            exit 0
+        fi
+
+        echo "Reload Nginx ....."
+        nginx -s reload || systemcl restart nginx || service nginx restart
+        if [ $? -ne 0 ];then
+            echo  -e "Nginx restart failed.\n"
+            exit 1
+        fi
     fi
-fi
-
-
-# 创建 challenge 配置文件, 并写入内容
-echo "Makeing challengeConfFile ....."
-
-echo "server {
-  listen 80;
-  server_name $domainName;
-
-  location /.well-known/acme-challenge/ {
-    #存放验证文件的目录，需自行更改为对应目录
-    alias $challengeDir;
-    try_files \$uri =404;
-  }
-
-  location / {
-    rewrite ^/(.*)$ https://$domainName/$1 permanent;
-  }
-}" | tee "$nginxConfDir"/"$challengeConfFile"
-
-
-# 重启 nginx
-read -p "Are you sure you want to restart nginx? [yes|no]: " -a nginxRestart
-
-if [ "$nginxRestart" == "no" ];then
-	echo -e "please restart nginx you self."
-	exit 0
-fi
-
-echo "Reload Nginx ....."
-nginx -s reload || systemcl restart nginx || service nginx restart
-
-if [ $? -ne 0 ];then
-	echo  -e "Nginx restart failed.\n"
-	exit 1
 fi
 
 
 # 生成证书
 echo 'Creating Credential ......'
-wget https://raw.githubusercontent.com/diafygi/acme-tiny/master/acme_tiny.py
-
+if [ ! -f acme_tiny.py ]; then
+    wget https://raw.githubusercontent.com/diafygi/acme-tiny/master/acme_tiny.py
+fi
 python acme_tiny.py --account-key ./account.key --csr ./domain.csr --acme-dir "$challengeDir" > ./signed.crt
-
 openssl dhparam -out ./dhparams.pem 2048
-
 wget -O - https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem > ./intermediate.pem
-
 cat signed.crt intermediate.pem > ./chained.pem
 
 
 # 创建 nginx server 配置文件并写入内容
-read -p "please input the tmp conf file name, default is [$domainName.tmp.conf]: " -a tmpConfFile
-
+defaultTmpConf="$domainName.tmp.conf"
+read -p "please input the tmp conf file name, default is [$defaultTmpConf]: " -a tmpConfFile
 if [ -z "$tmpConfFile" ]; then
-    tmpConfFile=$domainName.conf
+    tmpConfFile=$defaultTmpConf
 fi
 
-if [ -f "$nginxConfDir"/"$tmpConfFile" ]; then
-    read -p 'the File already exists, please input the tmp conf file name again, default is [$domainName.tmp2.conf]: ' -a tmpConfFile
+if [ -f "$nginxConfDir/$tmpConfFile" ]; then
+    read -p "The File $nginxConfDir/$tmpConfFile already exists, overwrite it? [yes|no]: " -a overwrite
+    if [ "$overwrite" == "no" ]; then
+        autoUpdate $workDir $challengeDir
 
-    if [ -z "$tmpConfFile" ]; then
-        tmpConfFile=$domainName.tmp2.conf
+        exit 0
+    else
+        echo -e "continue... \n"
     fi
 fi
 
 
 # nginx 配置文件的根目录
 read -p "please input the root directory, default is [/www]: " -a rootDir
-
 if [ ! -d "$rootDir" ]; then
     echo "No such directory"
     echo "Use Default /www"
     rootDir="/www"
 fi
 
-echo -e "creating config file ${nginxConfDir}/${challengeConfFile} ...\n"
-
+echo -e "creating config file $nginxConfDir/$tmpConfFile ...\n"
 echo "
 # php nginx conf example
 
@@ -196,23 +209,21 @@ server {
     server_name $domainName;
 
     location /.well-known/acme-challenge/ {
-        alias $challengeDir;
+        alias $challengeDir/;
         try_files \$uri =404;
     }
 
     location / {
-        rewrite ^/(.*)$ https://$domainName/$1 permanent;
+        rewrite ^/(.*)$ https://$domainName/\$1 permanent;
     }
-}" | tee "$nginxConfDir"/"$tmpConfFile"
+}" | tee "$nginxConfDir/$tmpConfFile"
 
 echo -e "\n\033[31m \bDeleting challengeConfFile .....\033[0m"
-rm -f "$nginxConfDir"/"$challengeConfFile"
-
+rm "$nginxConfDir/$challengeConfFile"
 #-------------------- end ---------------------
 
 
-echo -e "\n\033[33m \bDon't forget, exec: nginx -s reload \033[0m"
-
+echo -e "\n\033[33m \bDon't forget restart nginx !\033[0m"
 
 #-------------------- auto update -----------------------
 
