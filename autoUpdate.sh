@@ -6,7 +6,7 @@ autoUpdate () {
     renewFIle="renew_cert.sh"
     if [ -f $renewFIle ]; then
         read -p "$renewFIle already exists, overwrite?  [yes|no]: " -a overwrite
-        if [ $overwrite == "no" ]; then
+        if [[ "$overwrite" == "no" ]]; then
             echo -e "exiting ...\n"
             exit 0
         fi

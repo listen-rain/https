@@ -100,36 +100,11 @@ if [ -f "$nginxConfDir/$challengeConfFile" ]; then
         rm "$nginxConfDir/$challengeConfFile"
 
         # 创建 challenge 配置文件, 并写入内容
-        echo "Making challengeConfFile ....."
-        echo "server {
-          listen 80;
-          server_name $domainName;
-
-          location /.well-known/acme-challenge/ {
-            #存放验证文件的目录，需自行更改为对应目录
-            alias $challengeDir/;
-            try_files \$uri =404;
-          }
-
-          location / {
-            rewrite ^/(.*)$ https://$domainName/\$1 permanent;
-          }
-        }" | tee "$nginxConfDir/$challengeConfFile"
-
-        # 重启 nginx
-        read -p "Are you sure you want to restart nginx? [yes|no]: " -a nginxRestart
-        if [ "$nginxRestart" == "no" ];then
-            echo -e "please restart nginx you self now."
-            exit 0
-        fi
-
-        echo "Reload Nginx ....."
-        nginx -s reload || systemcl restart nginx || service nginx restart
-        if [ $? -ne 0 ];then
-            echo  -e "Nginx restart failed."
-            exit 1
-        fi
+        makeChallengeConfFile $domainName $challengeDir $nginxConfDir $challengeConfFile
     fi
+else
+    # 创建 challenge 配置文件, 并写入内容
+    makeChallengeConfFile $domainName $challengeDir $nginxConfDir $challengeConfFile
 fi
 
 
