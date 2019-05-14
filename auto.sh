@@ -16,10 +16,13 @@ cd "$workDir"
 #----------------- start -----------------------
 
 # make account
-openssl genrsa 4096 > ./account.key
+if [ ! -f ./account.key ];then
+	openssl genrsa 4096 > ./account.key
+fi
 
-openssl genrsa 4096 > ./domain.key
-
+if [ ! -f ./domain.key ];then
+	openssl genrsa 4096 > ./domain.key
+fi
 
 # The Domain Name
 domainName=$(specifyDomain)
@@ -34,6 +37,9 @@ fi
 # 单域名
 openssl req -new -sha256 -key domain.key -subj "/CN=$domainName" > domain.csr
 
+if [ $? -ne 0 ];then
+	echo -e "\033[31m \bVerifying Error! Please Check Again!\033[0m"	
+fi
 
 # 多域名
 # openssl req -new -sha256 -key domain.key -subj "/" -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:yoursite.com,DNS:www.yoursite.com,DNS:subdomain.yoursite.com")) > domain.csr
@@ -94,8 +100,20 @@ echo "server {
 
 
 # 重启 nginx
+read -p "Are you sure you want to restart nginx? [yes|no]: " -a nginxRestart
+
+if [ "$nginxRestart" == "no" ];then
+	echo -e "please restart nginx you self."
+	exit 0
+fi
+
 echo "Reload Nginx ....."
-nginx -s reload
+nginx -s reload || systemcl restart nginx || service nginx restart
+
+if [ $? -ne 0 ];then
+	echo  -e "Nginx restart failed.\n"
+	exit 1
+fi
 
 
 # 生成证书
@@ -135,6 +153,8 @@ if [ ! -d "$rootDir" ]; then
     echo "Use Default /www"
     rootDir="/www"
 fi
+
+echo -e "creating config file ${nginxConfDir}/${challengeConfFile} ...\n"
 
 echo "
 # php nginx conf example
@@ -185,13 +205,13 @@ server {
     }
 }" | tee "$nginxConfDir"/"$tmpConfFile"
 
-echo 'Deleting challengeConfFile .....'
+echo -e "\n\033[31m \bDeleting challengeConfFile .....\033[0m"
 rm -f "$nginxConfDir"/"$challengeConfFile"
 
 #-------------------- end ---------------------
 
 
-echo "Don't forget, exec: nginx -s reload"
+echo -e "\n\033[33m \bDon't forget, exec: nginx -s reload \033[0m"
 
 
 #-------------------- auto update -----------------------

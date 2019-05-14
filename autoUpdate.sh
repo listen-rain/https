@@ -3,6 +3,8 @@
 autoUpdate ()
 {
 
+echo -e "\n\033[32m \bcreating autoUpdate script renew_cert.sh ...\033[0m"
+
 echo "
 python $1/acme_tiny.py --account-key $1/account.key \
     --csr $1/domain.csr \
@@ -21,6 +23,6 @@ nginx -s reload
 
 chmod a+x ./renew_cert.sh
 
-echo "Don't forget. exec: crontab -e '0 0 1 * * /usr/bin/sh $1/renew_cert.sh 2>> $1/acme_tiny.log' "
+echo -e "\033[33m \bDon't forget. exec: crontab -e '0 0 1 * * /usr/bin/sh $1/renew_cert.sh 2>> $1/acme_tiny.log' \033[0m"
 
 }
