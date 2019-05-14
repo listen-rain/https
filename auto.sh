@@ -24,10 +24,9 @@ cd "$workDir"
 
 # level
 read -p "Please input the level, like [1024, 2048, 4096], default is 1024: " -a level
-if [ $level == "" ]; then
+if [ -z $level ]; then
     level=1024
 fi
-
 
 # make account
 sslAccount="./account.key"
